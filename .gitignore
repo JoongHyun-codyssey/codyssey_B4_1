@@ -1,6 +1,5 @@
 # 제공된 실습용 실행파일
-data/agent-app-linux-arm64
-data/agent-app-linux-x86
+data/agent-app-linux*
 
 # API 키 및 환경 변수
 api_keys/

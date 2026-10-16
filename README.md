@@ -18,9 +18,11 @@ Ubuntu 컨테이너에 SSH·방화벽·역할별 접근 권한을 구성하고, 
 | 스크립트 작성 계정 | `agent-dev` |
 | 최종 시간대 | `Asia/Seoul` — KST, UTC+09:00 |
 
-제출물은 이 수행 내역서와 [monitor.sh](monitor.sh)이다. 증거 이미지는 저장소의 `docs/screenshots/`에 배치한다. 제공 실행 파일과 키 파일은 Git에 포함하지 않는다.
+![macOS ARM64 호스트, Linux ARM64 실행 파일 및 Docker 버전 확인](docs/screenshots/00-environment.png)
 
-> 증거 이미지 파일명은 10절에 정리했다. `09-cron-registration.png`는 등록 내용을 별도로 캡처해 추가해야 한다. cron의 실제 자동 실행은 로그 증가로 확인했다.
+제출물은 이 수행 내역서와 [monitor.sh](monitor.sh)이다. 증거 이미지는 저장소의 [docs/screenshots/](docs/screenshots/)에 있으며, 각 수행 단계 아래에 연결했다. 제공 실행 파일과 키 파일은 Git에 포함하지 않는다.
+
+> 증거 이미지 목록과 링크는 10절에 정리했다. cron 등록 내용과 실제 자동 실행에 따른 로그 증가를 각각 확인했다.
 
 ## 2. 실습 환경 준비
 
@@ -42,6 +44,10 @@ docker exec -it agent-lab bash
 ```
 
 `NET_ADMIN`은 실습 컨테이너에서 UFW를 설정하기 위해 부여했다. 호스트의 포트는 `127.0.0.1`에 게시했으며, 앱은 컨테이너 내부에서 `0.0.0.0:15034`로 리슨한다.
+
+![ARM64 Ubuntu 컨테이너 생성 명령과 이미지 다운로드 결과](docs/screenshots/docker_run.png)
+
+![컨테이너의 Ubuntu 버전, aarch64 아키텍처 및 제공 파일 마운트 확인](docs/screenshots/docker_setting.png)
 
 ### 2.2 패키지 설치 — root
 
@@ -78,6 +84,10 @@ getent group agent-core
 | `agent-test` | QA·테스트 | `agent-common` | 소속되지 않음 |
 
 각 계정에는 별도의 기본 그룹도 있다. `id`와 그룹 조회로 위 보조 그룹 구성을 확인했다.
+
+![세 계정과 agent-common·agent-core 그룹 구성 확인](docs/screenshots/03-users-groups.png)
+
+![agent-admin 계정의 암호 설정 완료](docs/screenshots/01-ssh-admin-pw-set.png)
 
 ### 3.2 디렉토리와 ACL 설정 — root
 
@@ -117,6 +127,10 @@ getfacl /home/agent-admin "$AGENT_HOME/upload_files" \
 ls -l "$AGENT_HOME/bin/monitor.sh"
 ```
 
+![디렉토리 소유자·그룹 및 setgid 권한 확인](docs/screenshots/04-permissions-acl%281%29.png)
+
+![상위 경로 통과 권한과 공유·민감 디렉토리의 기본 ACL 확인](docs/screenshots/04-permissions-acl%282%29.png)
+
 역할별로 각 디렉토리에 임시 파일을 생성·기록·조회·삭제하는 테스트를 수행했다.
 
 | 계정 | upload_files | api_keys | 로그 디렉토리 |
@@ -126,6 +140,8 @@ ls -l "$AGENT_HOME/bin/monitor.sh"
 | agent-test | 허용 | 거부 | 거부 |
 
 총 **7개 허용, 2개 거부**를 확인했다. 이 검증은 각 계정의 디렉토리 접근과 파일 작업을 확인한 것으로, 다른 계정이 만든 모든 파일의 수정 권한까지 검증한 것은 아니다. 민감 경로의 제한은 일반 사용자 기준이며 root의 관리 권한은 별개다.
+
+![역할별 파일 작업 검증 결과: 7개 허용, 2개 거부](docs/screenshots/04-access-test.png)
 
 ## 4. SSH 및 방화벽
 
@@ -147,6 +163,8 @@ ss -tlnp 'sport = :20022'
 
 유효 설정에서 `port 20022`, `permitrootlogin no`를 확인했고, SSH의 20022 포트 리슨을 확인했다. Mac 터미널에서 일반 계정 접속도 검증했다.
 
+![SSH 포트 20022, Root 원격 로그인 차단 및 리슨 상태 확인](docs/screenshots/01-ssh.png)
+
 ```bash
 ssh -p 20022 agent-admin@127.0.0.1
 whoami
@@ -154,6 +172,8 @@ id
 ```
 
 접속 계정은 `agent-admin`이었다. SSH 포트 변경은 기본 포트를 노리는 접근을 줄이는 보조 조치이며, Root 원격 로그인 차단은 관리자 계정에 대한 직접 원격 접근을 제한한다.
+
+![Mac에서 agent-admin으로 SSH 접속 후 whoami와 id 확인](docs/screenshots/01-ssh-login.png)
 
 ### 4.2 UFW 설정 — root
 
@@ -175,6 +195,8 @@ ufw status numbered
 | IPv6 허용 포트 | `20022/tcp (v6)`, `15034/tcp (v6)` |
 
 인바운드의 신규 접근은 필요한 TCP 포트만 허용하도록 구성했다.
+
+![UFW 활성 상태 및 TCP 20022·15034의 IPv4·IPv6 허용 규칙 확인](docs/screenshots/02-firewall.png)
 
 ## 5. 제공 앱 실행 환경
 
@@ -239,6 +261,8 @@ cd "$AGENT_HOME"
 | 5. Log Permission | `[OK]` |
 | 최종 준비 상태 | `Agent READY` 출력 |
 
+![앱 Boot Sequence 5단계 통과 및 Agent READY 확인](docs/screenshots/05-app-ready.png)
+
 다른 root 터미널에서 다음을 확인했다.
 
 ```bash
@@ -247,6 +271,8 @@ ps -u agent-admin -o pid,ppid,comm,args
 ```
 
 `0.0.0.0:15034`의 LISTEN 상태와 앱 프로세스를 확인했다. 최초 검증에서는 PID `4470,4471`이 관찰되었고, 앱 재실행 후에는 PID가 달라졌다. 앱 실행 터미널은 유지하고, 종료 테스트에는 `Ctrl+C`를 사용했다.
+
+![TCP 15034 리슨과 agent-admin의 앱 프로세스 확인](docs/screenshots/05-app-port.png)
 
 ## 6. monitor.sh 구현 및 실행
 
@@ -263,6 +289,8 @@ echo "Exit code: $?"
 ```
 
 정상 실행에서 프로세스·포트 `[OK]`, CPU·메모리·디스크 사용률, UFW 활성 상태, 로그 기록 완료 메시지와 종료 코드 `0`을 확인했다. 제출한 소스는 `bash -n monitor.sh` 문법 검사도 통과했다.
+
+![monitor.sh 정상 실행: 프로세스·포트·자원·UFW 점검과 종료 코드 0](docs/screenshots/06-monitor-result.png)
 
 ### 6.2 점검 및 자원 수집 방식
 
@@ -316,6 +344,14 @@ runuser -u agent-admin -- sudo -n /usr/sbin/ufw status
 
 10개 제한은 `monitor.log`와 회전본의 합계다. 잠금 파일과 cron의 마지막 콘솔 출력 파일은 이 로그 보관본 개수에 포함하지 않는다. 운영 로그의 소유 관계 `agent-admin:agent-core`, 권한 `660`을 확인했다.
 
+![monitor.log 누적 기록 및 agent-admin:agent-core 소유 관계와 660 권한 확인](docs/screenshots/07-monitor-log.png)
+
+회전 검증에는 운영 로그와 분리한 임시 경로의 스크립트 복사본을 사용했다. 크기 한계 테스트 11회 후 현재 로그와 압축본의 합계 10개, 압축 무결성 통과를 확인했다.
+
+![임시 로그 경로에서 11회 회전과 보관 개수·압축 무결성을 검증한 코드](docs/screenshots/08-log-test-code.png)
+
+![로그 회전 11회 성공, 로그 파일 합계 10개, 압축 무결성 및 메모리 경고 확인](docs/screenshots/08-log-rotation.png)
+
 ## 7. cron 및 한국시간 설정
 
 ### 7.1 매분 실행 설정
@@ -326,7 +362,7 @@ root에서 `service cron start`로 서비스를 시작하고, `agent-admin`의 c
 runuser -u agent-admin -- env EDITOR=/usr/bin/nano crontab -e
 ```
 
-실습에서 사용한 등록 구성은 다음과 같다. 제출 전 `crontab -u agent-admin -l` 출력 화면을 별도 증거로 추가한다.
+실습에서 사용한 등록 구성은 다음과 같다. `crontab -u agent-admin -l` 출력으로 등록 내용을 확인했다.
 
 ```cron
 SHELL=/bin/bash
@@ -336,6 +372,8 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ```
 
 스크립트는 앱 이름·포트·로그 경로를 내부에서 지정하므로 대화형 로그인 셸의 `AGENT_*` 변수에 의존하지 않는다. `monitor.log`에는 측정 이력을 누적하고 `cron-last-run.txt`에는 가장 최근 실행의 콘솔 출력만 덮어쓴다.
+
+![cron 서비스 실행 및 agent-admin의 매분 monitor.sh 실행 등록 확인](docs/screenshots/09-cron-registration.png)
 
 ### 7.2 시간대 변경 — root
 
@@ -363,12 +401,18 @@ tail -n 5 /var/log/agent-app/monitor.log
 cat /var/log/agent-app/cron-last-run.txt
 ```
 
+시간대 변경 전 UTC 기준으로 로그가 4줄에서 6줄로 늘고, `07:42:02`, `07:43:02`에 신규 기록이 추가된 것을 확인했다.
+
+![UTC 기준 cron 자동 실행: 로그 4줄에서 6줄로 증가 및 마지막 실행 결과](docs/screenshots/10-cron-log-growth.png)
+
 | 확인 시점 | 확인 시각 | 로그 줄 수 | 마지막 로그 시각 |
 | --- | --- | --- | --- |
 | 시간대 변경 후 첫 확인 | 2026-10-15 16:44:45 KST | 7 | 07:44:02 — 변경 전 UTC 기록 |
 | 약 1분 23초 후 | 2026-10-15 16:46:08 KST | 9 | 16:46:02 KST |
 
 `16:45:02`, `16:46:02` 두 줄이 자동으로 추가되었고, 마지막 실행 출력에서 프로세스·포트·UFW 정상 상태와 로그 기록 완료를 확인했다.
+
+![KST 변경 후 cron 자동 실행: 로그 7줄에서 9줄로 증가 및 마지막 실행 결과](docs/screenshots/10-cron-log-growth-korea-time.png)
 
 ## 8. 기능 검증 결과
 
@@ -387,6 +431,24 @@ cat /var/log/agent-app/cron-last-run.txt
 
 포트 실패는 원본의 15034 포트를 중단한 실험이 아니라, 복사본에 미사용 포트를 지정한 실패 분기 검증이다. 로그 회전 역시 운영 로그를 손상시키지 않도록 임시 경로의 복사본에서 검증했다.
 
+### 8.1 프로세스 실패
+
+앱을 중단한 뒤 monitor를 실행해 프로세스 `[FAIL]`과 종료 코드 `1`을 확인했다.
+
+![앱 중단 시 프로세스 실패 메시지와 종료 코드 1 확인](docs/screenshots/11-process-failure.png)
+
+### 8.2 포트 실패
+
+복사본의 점검 포트를 미사용 `15035`로 변경해 프로세스 `[OK]` 이후 포트 `[FAIL]`과 종료 코드 `1`을 확인했다.
+
+![복사본의 TCP 15035 점검 실패와 종료 코드 1 확인](docs/screenshots/12-port-failure.png)
+
+### 8.3 방화벽 경고와 복구
+
+UFW 비활성 상태에서 경고 후 로그 기록과 종료 코드 `0`을 확인했다. 테스트 종료 시 UFW가 재활성화되고 기존 허용 규칙이 유지되는 것도 확인했다.
+
+![UFW 비활성 경고 후 로그 기록·종료 코드 0 및 방화벽 재활성화 확인](docs/screenshots/13-firewall-warning.png)
+
 ## 9. 문제 해결 기록
 
 | 문제 | 원인 및 조치 | 재검증 |
@@ -399,27 +461,31 @@ cat /var/log/agent-app/cron-last-run.txt
 
 ## 10. 증거 자료와 제출 체크리스트
 
-아래 파일명으로 `docs/screenshots/`에 이미지를 배치한다. 앱 성공 화면은 `05-app-ready.png`로 이름을 정리한다. 경로는 저장소 기준이다.
+증거 이미지는 `docs/screenshots/`에 저장되어 있으며, 각 파일명을 클릭하면 원본을 볼 수 있다. 경로는 저장소 기준이다.
 
 | 증거 파일 | 확인 내용 | 상태 |
 | --- | --- | --- |
-| `01-ssh.png` | SSH 유효 설정, 20022 리슨 | 확인 |
-| `01-ssh-login.png` | agent-admin의 SSH 접속 | 확인 |
-| `02-firewall.png` | UFW active 및 허용 포트 | 확인 |
-| `03-users-groups.png` | 계정·그룹 구성 | 확인 |
-| `04-permissions-acl(1).png`, `04-permissions-acl(2).png` | 디렉토리 소유·권한 및 ACL | 확인 |
-| `04-access-test.png` | 역할별 7개 허용, 2개 거부 | 확인 |
-| `05-app-ready.png` | Boot Sequence 5단계 OK, Agent READY | 확인 |
-| `05-app-port.png` | 0.0.0.0:15034 LISTEN | 결과 확인 |
-| `06-monitor-result.png` | 프로세스·포트·자원·방화벽 점검 | 확인 |
-| `07-monitor-log.png` | 로그 누적 및 파일 권한 | 확인 |
-| `08-log-rotation.png`, `08-log-test-code.png` | 회전 테스트 방법, 최대 10개, 압축 무결성, MEM 경고 | 확인 |
-| `09-cron-registration.png` | agent-admin의 crontab 등록 내용 | 별도 캡처 추가 필요 |
-| `10-cron-log-growth.png` | UTC 상태의 자동 누적 | 확인 |
-| `10-cron-log-growth-korea-time.png` | KST 변경 후 7줄 → 9줄 증가 | 확인 |
-| `11-process-failure.png` | 앱 중단 시 종료 코드 1 | 확인 |
-| `12-port-failure.png` | 복사본의 포트 실패 시 종료 코드 1 | 확인 |
-| `13-firewall-warning.png` | 비활성 경고·종료 코드 0·UFW 재활성화 | 확인 |
+| [00-environment.png](docs/screenshots/00-environment.png) | 호스트·실행 파일 아키텍처 및 Docker 버전 | 확인 |
+| [docker_run.png](docs/screenshots/docker_run.png) | ARM64 Ubuntu 컨테이너 생성 | 확인 |
+| [docker_setting.png](docs/screenshots/docker_setting.png) | 컨테이너 OS·아키텍처 및 제공 파일 마운트 | 확인 |
+| [01-ssh.png](docs/screenshots/01-ssh.png) | SSH 유효 설정, 20022 리슨 | 확인 |
+| [01-ssh-admin-pw-set.png](docs/screenshots/01-ssh-admin-pw-set.png) | agent-admin 암호 설정 | 확인 |
+| [01-ssh-login.png](docs/screenshots/01-ssh-login.png) | agent-admin의 SSH 접속 | 확인 |
+| [02-firewall.png](docs/screenshots/02-firewall.png) | UFW active 및 허용 포트 | 확인 |
+| [03-users-groups.png](docs/screenshots/03-users-groups.png) | 계정·그룹 구성 | 확인 |
+| [04-permissions-acl(1).png](docs/screenshots/04-permissions-acl%281%29.png), [04-permissions-acl(2).png](docs/screenshots/04-permissions-acl%282%29.png) | 디렉토리 소유·권한 및 ACL | 확인 |
+| [04-access-test.png](docs/screenshots/04-access-test.png) | 역할별 7개 허용, 2개 거부 | 확인 |
+| [05-app-ready.png](docs/screenshots/05-app-ready.png) | Boot Sequence 5단계 OK, Agent READY | 확인 |
+| [05-app-port.png](docs/screenshots/05-app-port.png) | 0.0.0.0:15034 LISTEN | 결과 확인 |
+| [06-monitor-result.png](docs/screenshots/06-monitor-result.png) | 프로세스·포트·자원·방화벽 점검 | 확인 |
+| [07-monitor-log.png](docs/screenshots/07-monitor-log.png) | 로그 누적 및 파일 권한 | 확인 |
+| [08-log-rotation.png](docs/screenshots/08-log-rotation.png), [08-log-test-code.png](docs/screenshots/08-log-test-code.png) | 회전 테스트 방법, 최대 10개, 압축 무결성, MEM 경고 | 확인 |
+| [09-cron-registration.png](docs/screenshots/09-cron-registration.png) | agent-admin의 crontab 등록 내용 | 확인 |
+| [10-cron-log-growth.png](docs/screenshots/10-cron-log-growth.png) | UTC 상태의 자동 누적 | 확인 |
+| [10-cron-log-growth-korea-time.png](docs/screenshots/10-cron-log-growth-korea-time.png) | KST 변경 후 7줄 → 9줄 증가 | 확인 |
+| [11-process-failure.png](docs/screenshots/11-process-failure.png) | 앱 중단 시 종료 코드 1 | 확인 |
+| [12-port-failure.png](docs/screenshots/12-port-failure.png) | 복사본의 포트 실패 시 종료 코드 1 | 확인 |
+| [13-firewall-warning.png](docs/screenshots/13-firewall-warning.png) | 비활성 경고·종료 코드 0·UFW 재활성화 | 확인 |
 
 - [x] SSH 포트 20022 및 Root 원격 로그인 차단 설정 확인
 - [x] 일반 계정의 SSH 접속 확인
@@ -431,9 +497,9 @@ cat /var/log/agent-app/cron-last-run.txt
 - [x] monitor 실행 결과, 경고 및 실패 종료 코드 확인
 - [x] monitor.log 누적과 회전·압축·보관 개수 확인
 - [x] cron에 의한 매분 자동 로그 증가 확인
-- [ ] agent-admin의 crontab 등록 화면을 증거 파일로 추가
+- [x] agent-admin의 crontab 등록 화면을 증거 파일로 추가
 
-등록 증거는 root 터미널에서 다음 출력으로 캡처한다.
+cron 등록 상태와 서비스·스크립트 권한은 root 터미널에서 다음 명령으로 재확인할 수 있다.
 
 ```bash
 crontab -u agent-admin -l

@@ -4,19 +4,19 @@ Ubuntu 컨테이너에 SSH·방화벽·역할별 접근 권한을 구성하고, 
 
 ## 1. 환경과 제출물
 
-| 항목 | 실제 구성 |
-| --- | --- |
-| 실습일 | 2026-10-15 |
-| 호스트 | macOS, Apple Silicon ARM64 |
-| 실습 환경 | Docker Desktop, Ubuntu 22.04 LTS ARM64 컨테이너 |
-| 컨테이너·호스트명 | `agent-lab` |
-| 제공 앱 | `agent-app-linux-arm64` — Linux ARM64 실행 파일 |
-| 자동화 언어 | Bash |
-| 방화벽 | UFW |
-| SSH / 앱 포트 | TCP 20022 / TCP 15034 |
-| 앱 실행 / cron 계정 | `agent-admin` |
-| 스크립트 작성 계정 | `agent-dev` |
-| 최종 시간대 | `Asia/Seoul` — KST, UTC+09:00 |
+| 항목                | 실제 구성                                       |
+| ------------------- | ----------------------------------------------- |
+| 실습일              | 2026-10-15                                      |
+| 호스트              | macOS, Apple Silicon ARM64                      |
+| 실습 환경           | Docker Desktop, Ubuntu 22.04 LTS ARM64 컨테이너 |
+| 컨테이너·호스트명   | `agent-lab`                                     |
+| 제공 앱             | `agent-app-linux-arm64` — Linux ARM64 실행 파일 |
+| 자동화 언어         | Bash                                            |
+| 방화벽              | UFW                                             |
+| SSH / 앱 포트       | TCP 20022 / TCP 15034                           |
+| 앱 실행 / cron 계정 | `agent-admin`                                   |
+| 스크립트 작성 계정  | `agent-dev`                                     |
+| 최종 시간대         | `Asia/Seoul` — KST, UTC+09:00                   |
 
 ![macOS ARM64 호스트, Linux ARM64 실행 파일 및 Docker 버전 확인](docs/screenshots/00-environment.png)
 
@@ -77,11 +77,11 @@ getent group agent-common
 getent group agent-core
 ```
 
-| 계정 | 역할 | 공통 그룹 | 핵심 그룹 |
-| --- | --- | --- | --- |
-| `agent-admin` | 앱 운영, cron 실행 | `agent-common` | `agent-core` |
-| `agent-dev` | 스크립트 작성, 개발·운영 | `agent-common` | `agent-core` |
-| `agent-test` | QA·테스트 | `agent-common` | 소속되지 않음 |
+| 계정          | 역할                     | 공통 그룹      | 핵심 그룹     |
+| ------------- | ------------------------ | -------------- | ------------- |
+| `agent-admin` | 앱 운영, cron 실행       | `agent-common` | `agent-core`  |
+| `agent-dev`   | 스크립트 작성, 개발·운영 | `agent-common` | `agent-core`  |
+| `agent-test`  | QA·테스트                | `agent-common` | 소속되지 않음 |
 
 각 계정에는 별도의 기본 그룹도 있다. `id`와 그룹 조회로 위 보조 그룹 구성을 확인했다.
 
@@ -107,15 +107,15 @@ setfacl -d -m u::rwx,g::rwx,m::rwx,o::--- \
   "$AGENT_HOME/upload_files" "$AGENT_HOME/api_keys" /var/log/agent-app
 ```
 
-| 경로 | 소유자:그룹 | 권한 | 목적 |
-| --- | --- | --- | --- |
-| `/home/agent-admin` | `agent-admin:agent-admin` | `agent-common`에 ACL `--x` 추가 | 공유 경로까지 통과 허용 |
-| `$AGENT_HOME` | `agent-admin:agent-common` | `2750` | 그룹에 조회·통과 허용 |
-| `$AGENT_HOME/upload_files` | `agent-admin:agent-common` | `2770` + 기본 ACL | 세 계정의 공유 공간 |
-| `$AGENT_HOME/api_keys` | `agent-admin:agent-core` | `2770` + 기본 ACL | admin·dev의 키 관리 공간 |
-| `/var/log/agent-app` | `agent-admin:agent-core` | `2770` + 기본 ACL | admin·dev의 로그 관리 공간 |
-| `$AGENT_HOME/bin` | `agent-dev:agent-core` | `2750` | 스크립트 작성·실행 공간 |
-| `$AGENT_HOME/bin/monitor.sh` | `agent-dev:agent-core` | `750` | dev가 수정하고 core가 실행 |
+| 경로                         | 소유자:그룹                | 권한                            | 목적                       |
+| ---------------------------- | -------------------------- | ------------------------------- | -------------------------- |
+| `/home/agent-admin`          | `agent-admin:agent-admin`  | `agent-common`에 ACL `--x` 추가 | 공유 경로까지 통과 허용    |
+| `$AGENT_HOME`                | `agent-admin:agent-common` | `2750`                          | 그룹에 조회·통과 허용      |
+| `$AGENT_HOME/upload_files`   | `agent-admin:agent-common` | `2770` + 기본 ACL               | 세 계정의 공유 공간        |
+| `$AGENT_HOME/api_keys`       | `agent-admin:agent-core`   | `2770` + 기본 ACL               | admin·dev의 키 관리 공간   |
+| `/var/log/agent-app`         | `agent-admin:agent-core`   | `2770` + 기본 ACL               | admin·dev의 로그 관리 공간 |
+| `$AGENT_HOME/bin`            | `agent-dev:agent-core`     | `2750`                          | 스크립트 작성·실행 공간    |
+| `$AGENT_HOME/bin/monitor.sh` | `agent-dev:agent-core`     | `750`                           | dev가 수정하고 core가 실행 |
 
 디렉토리의 setgid로 새 항목이 디렉토리 그룹을 상속하도록 했다. 기본 ACL은 새 항목에 적용할 권한을 지정한다. 단, 생성 프로그램이 명시적으로 제한한 파일 모드를 기본 ACL이 무조건 넓히지는 않는다.
 
@@ -133,11 +133,11 @@ ls -l "$AGENT_HOME/bin/monitor.sh"
 
 역할별로 각 디렉토리에 임시 파일을 생성·기록·조회·삭제하는 테스트를 수행했다.
 
-| 계정 | upload_files | api_keys | 로그 디렉토리 |
-| --- | --- | --- | --- |
-| agent-admin | 허용 | 허용 | 허용 |
-| agent-dev | 허용 | 허용 | 허용 |
-| agent-test | 허용 | 거부 | 거부 |
+| 계정        | upload_files | api_keys | 로그 디렉토리 |
+| ----------- | ------------ | -------- | ------------- |
+| agent-admin | 허용         | 허용     | 허용          |
+| agent-dev   | 허용         | 허용     | 허용          |
+| agent-test  | 허용         | 거부     | 거부          |
 
 총 **7개 허용, 2개 거부**를 확인했다. 이 검증은 각 계정의 디렉토리 접근과 파일 작업을 확인한 것으로, 다른 계정이 만든 모든 파일의 수정 권한까지 검증한 것은 아니다. 민감 경로의 제한은 일반 사용자 기준이며 root의 관리 권한은 별개다.
 
@@ -187,12 +187,12 @@ ufw status verbose
 ufw status numbered
 ```
 
-| 항목 | 확인 결과 |
-| --- | --- |
-| 활성 상태 | `Status: active` |
-| 기본 정책 | incoming deny, outgoing allow, routed deny |
-| IPv4 허용 포트 | `20022/tcp`, `15034/tcp` |
-| IPv6 허용 포트 | `20022/tcp (v6)`, `15034/tcp (v6)` |
+| 항목           | 확인 결과                                  |
+| -------------- | ------------------------------------------ |
+| 활성 상태      | `Status: active`                           |
+| 기본 정책      | incoming deny, outgoing allow, routed deny |
+| IPv4 허용 포트 | `20022/tcp`, `15034/tcp`                   |
+| IPv6 허용 포트 | `20022/tcp (v6)`, `15034/tcp (v6)`         |
 
 인바운드의 신규 접근은 필요한 TCP 포트만 허용하도록 구성했다.
 
@@ -204,11 +204,11 @@ ufw status numbered
 
 실제 제공 파일은 직접 실행하는 Linux ARM64 바이너리였다. 실행 시 출력된 오류를 기준으로 다음 차이를 확인했다.
 
-| 항목 | 과제 명세 | 제공 바이너리가 요구한 값 / 적용 내용 |
-| --- | --- | --- |
-| 실행 대상 | `agent_app.py` 등 Python 앱 | `./agent-app-linux-arm64` |
-| `AGENT_KEY_PATH` | 키 파일 전체 경로 | `$AGENT_HOME/api_keys` 디렉토리 |
-| 필수 키 파일명 | `t_secret.key` | `secret.key` |
+| 항목             | 과제 명세                   | 제공 바이너리가 요구한 값 / 적용 내용 |
+| ---------------- | --------------------------- | ------------------------------------- |
+| 실행 대상        | `agent_app.py` 등 Python 앱 | `./agent-app-linux-arm64`             |
+| `AGENT_KEY_PATH` | 키 파일 전체 경로           | `$AGENT_HOME/api_keys` 디렉토리       |
+| 필수 키 파일명   | `t_secret.key`              | `secret.key`                          |
 
 명세의 `t_secret.key`도 생성하고, 바이너리가 요구하는 `secret.key`를 같은 내용으로 추가했다. 앱 파일은 수정하지 않았다.
 
@@ -252,14 +252,14 @@ cd "$AGENT_HOME"
 ./agent-app-linux-arm64
 ```
 
-| Boot Sequence | 확인 결과 |
-| --- | --- |
-| 1. User Account | `[OK]` — 일반 계정 `agent-admin`으로 실행 |
-| 2. Environment Variables | `[OK]` |
-| 3. Required Files | `[OK]` |
-| 4. Port Availability | `[OK]` |
-| 5. Log Permission | `[OK]` |
-| 최종 준비 상태 | `Agent READY` 출력 |
+| Boot Sequence            | 확인 결과                                 |
+| ------------------------ | ----------------------------------------- |
+| 1. User Account          | `[OK]` — 일반 계정 `agent-admin`으로 실행 |
+| 2. Environment Variables | `[OK]`                                    |
+| 3. Required Files        | `[OK]`                                    |
+| 4. Port Availability     | `[OK]`                                    |
+| 5. Log Permission        | `[OK]`                                    |
+| 최종 준비 상태           | `Agent READY` 출력                        |
 
 ![앱 Boot Sequence 5단계 통과 및 Agent READY 확인](docs/screenshots/05-app-ready.png)
 
@@ -294,14 +294,14 @@ echo "Exit code: $?"
 
 ### 6.2 점검 및 자원 수집 방식
 
-| 항목 | 구현 방식 | 처리 기준 |
-| --- | --- | --- |
-| 프로세스 | `pgrep -u agent-admin -f`로 실행 명령에서 앱 파일명 검색, 여러 PID를 쉼표로 연결 | 없으면 실패 메시지 후 `exit 1` |
-| 포트 | `ss -H -ltn 'sport = :15034'` | LISTEN 결과가 없으면 `exit 1` |
-| CPU | `/proc/stat`을 1초 간격으로 두 번 읽어 전체·유휴 시간 차이 계산 | `> 20%` 경고 |
-| 메모리 | `/proc/meminfo`에서 `(MemTotal - MemAvailable) / MemTotal × 100` | `> 10%` 경고 |
-| 디스크 | `df -P /`의 Used % | `> 80%` 경고 |
-| 방화벽 | `sudo -n /usr/sbin/ufw status` | 비활성 또는 조회 실패 시 경고, 계속 실행 |
+| 항목     | 구현 방식                                                                        | 처리 기준                                |
+| -------- | -------------------------------------------------------------------------------- | ---------------------------------------- |
+| 프로세스 | `pgrep -u agent-admin -f`로 실행 명령에서 앱 파일명 검색, 여러 PID를 쉼표로 연결 | 없으면 실패 메시지 후 `exit 1`           |
+| 포트     | `ss -H -ltn 'sport = :15034'`                                                    | LISTEN 결과가 없으면 `exit 1`            |
+| CPU      | `/proc/stat`을 1초 간격으로 두 번 읽어 전체·유휴 시간 차이 계산                  | `> 20%` 경고                             |
+| 메모리   | `/proc/meminfo`에서 `(MemTotal - MemAvailable) / MemTotal × 100`                 | `> 10%` 경고                             |
+| 디스크   | `df -P /`의 Used %                                                               | `> 80%` 경고                             |
+| 방화벽   | `sudo -n /usr/sbin/ufw status`                                                   | 비활성 또는 조회 실패 시 경고, 계속 실행 |
 
 자원 임계값은 **초과** 조건이다. 경고는 점검과 로그 기록을 중단하지 않는다. CPU·메모리·디스크 수집 실패와 로그 기록 실패는 별도의 실패로 종료한다.
 
@@ -333,14 +333,14 @@ runuser -u agent-admin -- sudo -n /usr/sbin/ufw status
 [2026-10-15 16:53:25] PID:5787,5788 CPU:3.8% MEM:9.4% DISK_USED:4%
 ```
 
-| 항목 | 구현 내용 |
-| --- | --- |
-| 크기 기준 | `10 × 1024 × 1024`바이트, 즉 10MiB를 과제의 10MB 기준으로 사용 |
-| 검사 시점 | 새 로그 한 줄과 줄바꿈을 추가하면 기준을 넘는지 기록 전에 검사 |
-| 보관 파일 | 현재 `monitor.log` 1개 + `.1.gz`부터 `.9.gz`까지 최대 9개 |
-| 압축·삭제 | 가장 오래된 `.9.gz` 삭제 → 기존 번호 증가 → 현재 로그 gzip 압축 → 현재 로그 비우기 |
-| 동시 실행 | `.monitor.lock`에 `flock`을 적용해 회전·기록 구간 직렬화 |
-| 파일 생성 권한 | `umask 007`, 운영 디렉토리의 그룹·기본 ACL 적용 |
+| 항목           | 구현 내용                                                                          |
+| -------------- | ---------------------------------------------------------------------------------- |
+| 크기 기준      | `10 × 1024 × 1024`바이트, 즉 10MiB를 과제의 10MB 기준으로 사용                     |
+| 검사 시점      | 새 로그 한 줄과 줄바꿈을 추가하면 기준을 넘는지 기록 전에 검사                     |
+| 보관 파일      | 현재 `monitor.log` 1개 + `.1.gz`부터 `.9.gz`까지 최대 9개                          |
+| 압축·삭제      | 가장 오래된 `.9.gz` 삭제 → 기존 번호 증가 → 현재 로그 gzip 압축 → 현재 로그 비우기 |
+| 동시 실행      | `.monitor.lock`에 `flock`을 적용해 회전·기록 구간 직렬화                           |
+| 파일 생성 권한 | `umask 007`, 운영 디렉토리의 그룹·기본 ACL 적용                                    |
 
 10개 제한은 `monitor.log`와 회전본의 합계다. 잠금 파일과 cron의 마지막 콘솔 출력 파일은 이 로그 보관본 개수에 포함하지 않는다. 운영 로그의 소유 관계 `agent-admin:agent-core`, 권한 `660`을 확인했다.
 
@@ -405,10 +405,10 @@ cat /var/log/agent-app/cron-last-run.txt
 
 ![UTC 기준 cron 자동 실행: 로그 4줄에서 6줄로 증가 및 마지막 실행 결과](docs/screenshots/10-cron-log-growth.png)
 
-| 확인 시점 | 확인 시각 | 로그 줄 수 | 마지막 로그 시각 |
-| --- | --- | --- | --- |
-| 시간대 변경 후 첫 확인 | 2026-10-15 16:44:45 KST | 7 | 07:44:02 — 변경 전 UTC 기록 |
-| 약 1분 23초 후 | 2026-10-15 16:46:08 KST | 9 | 16:46:02 KST |
+| 확인 시점              | 확인 시각               | 로그 줄 수 | 마지막 로그 시각            |
+| ---------------------- | ----------------------- | ---------- | --------------------------- |
+| 시간대 변경 후 첫 확인 | 2026-10-15 16:44:45 KST | 7          | 07:44:02 — 변경 전 UTC 기록 |
+| 약 1분 23초 후         | 2026-10-15 16:46:08 KST | 9          | 16:46:02 KST                |
 
 `16:45:02`, `16:46:02` 두 줄이 자동으로 추가되었고, 마지막 실행 출력에서 프로세스·포트·UFW 정상 상태와 로그 기록 완료를 확인했다.
 
@@ -416,18 +416,18 @@ cat /var/log/agent-app/cron-last-run.txt
 
 ## 8. 기능 검증 결과
 
-| 검증 항목 | 수행 방법 | 확인 결과 |
-| --- | --- | --- |
-| 정상 실행 | 앱 실행 중 admin으로 monitor 실행 | 프로세스·포트 OK, 자원 수집·로그 기록, 종료 코드 0 |
-| 프로세스 실패 | 앱 터미널에서 Ctrl+C 후 monitor 실행 | 프로세스 FAIL, 종료 코드 1; 검증 후 앱 재실행 |
-| 포트 실패 | 스크립트 복사본의 `APP_PORT`만 미사용 15035로 변경 | 프로세스 OK → 포트 FAIL, 종료 코드 1 |
-| 방화벽 비활성 | UFW를 일시 중지하고 monitor 실행 | WARNING 후 로그 기록, 종료 코드 0 |
-| 방화벽 복구 | 테스트 서브셸의 EXIT trap으로 UFW 재활성화 | `Status: active`, 기존 두 포트 허용 규칙 유지 |
-| 메모리 경고 | 회전 테스트 중 MEM 10.5% 관찰 | `10.5% > 10%` WARNING 후 로그 기록 계속 |
-| CPU·디스크 경고 | 제출 소스의 임계값 비교 로직 확인 | 구현 확인; 두 경고를 유발하는 실행 테스트는 별도 수행하지 않음 |
-| 로그 회전 | `/tmp/agent-rotation.*`에서 로그 경로를 바꾼 복사본으로 크기 한계 테스트 11회 | 회전 성공, 현재 로그와 압축본 합계 10개 |
-| 압축 무결성 | 테스트 압축 로그에 `gzip -t` 실행 | 모든 압축 파일 검사 통과 |
-| cron 자동 실행 | 수동 실행을 멈추고 줄 수·시간 비교 | 7줄 → 9줄, 매분 신규 기록 확인 |
+| 검증 항목       | 수행 방법                                                                     | 확인 결과                                                      |
+| --------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| 정상 실행       | 앱 실행 중 admin으로 monitor 실행                                             | 프로세스·포트 OK, 자원 수집·로그 기록, 종료 코드 0             |
+| 프로세스 실패   | 앱 터미널에서 Ctrl+C 후 monitor 실행                                          | 프로세스 FAIL, 종료 코드 1; 검증 후 앱 재실행                  |
+| 포트 실패       | 스크립트 복사본의 `APP_PORT`만 미사용 15035로 변경                            | 프로세스 OK → 포트 FAIL, 종료 코드 1                           |
+| 방화벽 비활성   | UFW를 일시 중지하고 monitor 실행                                              | WARNING 후 로그 기록, 종료 코드 0                              |
+| 방화벽 복구     | 테스트 서브셸의 EXIT trap으로 UFW 재활성화                                    | `Status: active`, 기존 두 포트 허용 규칙 유지                  |
+| 메모리 경고     | 회전 테스트 중 MEM 10.5% 관찰                                                 | `10.5% > 10%` WARNING 후 로그 기록 계속                        |
+| CPU·디스크 경고 | 제출 소스의 임계값 비교 로직 확인                                             | 구현 확인; 두 경고를 유발하는 실행 테스트는 별도 수행하지 않음 |
+| 로그 회전       | `/tmp/agent-rotation.*`에서 로그 경로를 바꾼 복사본으로 크기 한계 테스트 11회 | 회전 성공, 현재 로그와 압축본 합계 10개                        |
+| 압축 무결성     | 테스트 압축 로그에 `gzip -t` 실행                                             | 모든 압축 파일 검사 통과                                       |
+| cron 자동 실행  | 수동 실행을 멈추고 줄 수·시간 비교                                            | 7줄 → 9줄, 매분 신규 기록 확인                                 |
 
 포트 실패는 원본의 15034 포트를 중단한 실험이 아니라, 복사본에 미사용 포트를 지정한 실패 분기 검증이다. 로그 회전 역시 운영 로그를 손상시키지 않도록 임시 경로의 복사본에서 검증했다.
 
@@ -451,41 +451,41 @@ UFW 비활성 상태에서 경고 후 로그 기록과 종료 코드 `0`을 확�
 
 ## 9. 문제 해결 기록
 
-| 문제 | 원인 및 조치 | 재검증 |
-| --- | --- | --- |
-| Docker 소켓에 연결 실패 | Docker Desktop이 실행되지 않아 `open -a Docker`로 시작 | Docker 명령 및 컨테이너 생성 진행 |
-| `Key Path Mismatch` | 바이너리는 파일 경로가 아닌 `api_keys` 디렉토리를 요구하여 환경 변수 수정 | 환경 변수 단계 OK |
-| `Missing File: secret.key` | 바이너리가 요구하는 파일명이 명세와 달라 동일 내용의 `secret.key` 추가 | 필수 파일 단계 OK, 최종 READY |
-| `set: Illegal option -o pipefail` | Bash로 실행되지 않아 첫 줄을 `#!/bin/bash`로 바로잡고 직접 실행 | admin으로 실행 시 종료 코드 0 |
-| 로그 시각이 07시로 표시 | 초기 UTC 설정을 `Asia/Seoul`로 변경하고 cron 재시작 | KST 시각의 자동 로그 확인 |
+| 문제                              | 원인 및 조치                                                              | 재검증                            |
+| --------------------------------- | ------------------------------------------------------------------------- | --------------------------------- |
+| Docker 소켓에 연결 실패           | Docker Desktop이 실행되지 않아 `open -a Docker`로 시작                    | Docker 명령 및 컨테이너 생성 진행 |
+| `Key Path Mismatch`               | 바이너리는 파일 경로가 아닌 `api_keys` 디렉토리를 요구하여 환경 변수 수정 | 환경 변수 단계 OK                 |
+| `Missing File: secret.key`        | 바이너리가 요구하는 파일명이 명세와 달라 동일 내용의 `secret.key` 추가    | 필수 파일 단계 OK, 최종 READY     |
+| `set: Illegal option -o pipefail` | Bash로 실행되지 않아 첫 줄을 `#!/bin/bash`로 바로잡고 직접 실행           | admin으로 실행 시 종료 코드 0     |
+| 로그 시각이 07시로 표시           | 초기 UTC 설정을 `Asia/Seoul`로 변경하고 cron 재시작                       | KST 시각의 자동 로그 확인         |
 
 ## 10. 증거 자료와 제출 체크리스트
 
 증거 이미지는 `docs/screenshots/`에 저장되어 있으며, 각 파일명을 클릭하면 원본을 볼 수 있다. 경로는 저장소 기준이다.
 
-| 증거 파일 | 확인 내용 | 상태 |
-| --- | --- | --- |
-| [00-environment.png](docs/screenshots/00-environment.png) | 호스트·실행 파일 아키텍처 및 Docker 버전 | 확인 |
-| [docker_run.png](docs/screenshots/docker_run.png) | ARM64 Ubuntu 컨테이너 생성 | 확인 |
-| [docker_setting.png](docs/screenshots/docker_setting.png) | 컨테이너 OS·아키텍처 및 제공 파일 마운트 | 확인 |
-| [01-ssh.png](docs/screenshots/01-ssh.png) | SSH 유효 설정, 20022 리슨 | 확인 |
-| [01-ssh-admin-pw-set.png](docs/screenshots/01-ssh-admin-pw-set.png) | agent-admin 암호 설정 | 확인 |
-| [01-ssh-login.png](docs/screenshots/01-ssh-login.png) | agent-admin의 SSH 접속 | 확인 |
-| [02-firewall.png](docs/screenshots/02-firewall.png) | UFW active 및 허용 포트 | 확인 |
-| [03-users-groups.png](docs/screenshots/03-users-groups.png) | 계정·그룹 구성 | 확인 |
-| [04-permissions-acl(1).png](docs/screenshots/04-permissions-acl%281%29.png), [04-permissions-acl(2).png](docs/screenshots/04-permissions-acl%282%29.png) | 디렉토리 소유·권한 및 ACL | 확인 |
-| [04-access-test.png](docs/screenshots/04-access-test.png) | 역할별 7개 허용, 2개 거부 | 확인 |
-| [05-app-ready.png](docs/screenshots/05-app-ready.png) | Boot Sequence 5단계 OK, Agent READY | 확인 |
-| [05-app-port.png](docs/screenshots/05-app-port.png) | 0.0.0.0:15034 LISTEN | 결과 확인 |
-| [06-monitor-result.png](docs/screenshots/06-monitor-result.png) | 프로세스·포트·자원·방화벽 점검 | 확인 |
-| [07-monitor-log.png](docs/screenshots/07-monitor-log.png) | 로그 누적 및 파일 권한 | 확인 |
-| [08-log-rotation.png](docs/screenshots/08-log-rotation.png), [08-log-test-code.png](docs/screenshots/08-log-test-code.png) | 회전 테스트 방법, 최대 10개, 압축 무결성, MEM 경고 | 확인 |
-| [09-cron-registration.png](docs/screenshots/09-cron-registration.png) | agent-admin의 crontab 등록 내용 | 확인 |
-| [10-cron-log-growth.png](docs/screenshots/10-cron-log-growth.png) | UTC 상태의 자동 누적 | 확인 |
-| [10-cron-log-growth-korea-time.png](docs/screenshots/10-cron-log-growth-korea-time.png) | KST 변경 후 7줄 → 9줄 증가 | 확인 |
-| [11-process-failure.png](docs/screenshots/11-process-failure.png) | 앱 중단 시 종료 코드 1 | 확인 |
-| [12-port-failure.png](docs/screenshots/12-port-failure.png) | 복사본의 포트 실패 시 종료 코드 1 | 확인 |
-| [13-firewall-warning.png](docs/screenshots/13-firewall-warning.png) | 비활성 경고·종료 코드 0·UFW 재활성화 | 확인 |
+| 증거 파일                                                                                                                                                | 확인 내용                                          | 상태      |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- | --------- |
+| [00-environment.png](docs/screenshots/00-environment.png)                                                                                                | 호스트·실행 파일 아키텍처 및 Docker 버전           | 확인      |
+| [docker_run.png](docs/screenshots/docker_run.png)                                                                                                        | ARM64 Ubuntu 컨테이너 생성                         | 확인      |
+| [docker_setting.png](docs/screenshots/docker_setting.png)                                                                                                | 컨테이너 OS·아키텍처 및 제공 파일 마운트           | 확인      |
+| [01-ssh.png](docs/screenshots/01-ssh.png)                                                                                                                | SSH 유효 설정, 20022 리슨                          | 확인      |
+| [01-ssh-admin-pw-set.png](docs/screenshots/01-ssh-admin-pw-set.png)                                                                                      | agent-admin 암호 설정                              | 확인      |
+| [01-ssh-login.png](docs/screenshots/01-ssh-login.png)                                                                                                    | agent-admin의 SSH 접속                             | 확인      |
+| [02-firewall.png](docs/screenshots/02-firewall.png)                                                                                                      | UFW active 및 허용 포트                            | 확인      |
+| [03-users-groups.png](docs/screenshots/03-users-groups.png)                                                                                              | 계정·그룹 구성                                     | 확인      |
+| [04-permissions-acl(1).png](docs/screenshots/04-permissions-acl%281%29.png), [04-permissions-acl(2).png](docs/screenshots/04-permissions-acl%282%29.png) | 디렉토리 소유·권한 및 ACL                          | 확인      |
+| [04-access-test.png](docs/screenshots/04-access-test.png)                                                                                                | 역할별 7개 허용, 2개 거부                          | 확인      |
+| [05-app-ready.png](docs/screenshots/05-app-ready.png)                                                                                                    | Boot Sequence 5단계 OK, Agent READY                | 확인      |
+| [05-app-port.png](docs/screenshots/05-app-port.png)                                                                                                      | 0.0.0.0:15034 LISTEN                               | 결과 확인 |
+| [06-monitor-result.png](docs/screenshots/06-monitor-result.png)                                                                                          | 프로세스·포트·자원·방화벽 점검                     | 확인      |
+| [07-monitor-log.png](docs/screenshots/07-monitor-log.png)                                                                                                | 로그 누적 및 파일 권한                             | 확인      |
+| [08-log-rotation.png](docs/screenshots/08-log-rotation.png), [08-log-test-code.png](docs/screenshots/08-log-test-code.png)                               | 회전 테스트 방법, 최대 10개, 압축 무결성, MEM 경고 | 확인      |
+| [09-cron-registration.png](docs/screenshots/09-cron-registration.png)                                                                                    | agent-admin의 crontab 등록 내용                    | 확인      |
+| [10-cron-log-growth.png](docs/screenshots/10-cron-log-growth.png)                                                                                        | UTC 상태의 자동 누적                               | 확인      |
+| [10-cron-log-growth-korea-time.png](docs/screenshots/10-cron-log-growth-korea-time.png)                                                                  | KST 변경 후 7줄 → 9줄 증가                         | 확인      |
+| [11-process-failure.png](docs/screenshots/11-process-failure.png)                                                                                        | 앱 중단 시 종료 코드 1                             | 확인      |
+| [12-port-failure.png](docs/screenshots/12-port-failure.png)                                                                                              | 복사본의 포트 실패 시 종료 코드 1                  | 확인      |
+| [13-firewall-warning.png](docs/screenshots/13-firewall-warning.png)                                                                                      | 비활성 경고·종료 코드 0·UFW 재활성화               | 확인      |
 
 - [x] SSH 포트 20022 및 Root 원격 로그인 차단 설정 확인
 - [x] 일반 계정의 SSH 접속 확인
